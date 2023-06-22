@@ -1,7 +1,13 @@
-import { useState, useEffect } from 'react'
-import { themeChange } from 'theme-change'
-import CodeEditor from './Editor'
+import React, { useRef, useState } from 'react'
+
+import axios, {
+  getResponseDetails,
+  AxiosRequestConfig,
+  responseDetails
+} from './utils/axiosHelper'
+import ThemeToggleSwitch from './components/ThemeToggleSwitch'
 import './App.css'
+import ResponseSection from './components/ResponseSection'
 
 const Tabs = [
   'Params',
@@ -12,6 +18,119 @@ const Tabs = [
   'Tests',
   'Settings'
 ]
+
+function App() {
+  // define state for active tab
+  const [activeTab, setActiveTab] = useState('Params')
+  // define state for axios response
+  const [axiosResponse, setAxiosResponse] = useState<responseDetails | null>(
+    null
+  )
+  // define form reference
+  const formRef = useRef<any>(null)
+
+  // submit the form
+  const submitForm = async (e: React.FormEvent) => {
+    e.preventDefault()
+    // reset the response
+    setAxiosResponse(null)
+    try {
+      // get form Value
+      const form = formRef.current!
+      // get the values of the form reference
+      const method = form.querySelector('#method')?.value
+      const url = form.querySelector('#url')?.value
+      console.log(method, url, form)
+      // TODO: validate the input
+      // send the request
+      const axiosRequest: AxiosRequestConfig = { method, url }
+      const response = await axios(axiosRequest)
+      const resDetails = getResponseDetails(response)
+      setAxiosResponse(resDetails)
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        console.error('error message: ', error.message)
+        return error.message
+      } else {
+        console.error('unexpected error: ', error)
+        return 'An unexpected error occurred'
+      }
+    }
+  }
+
+  return (
+    <div className="flex flex-col">
+      {/* Theme toggle switch */}
+      <ThemeToggleSwitch />
+
+      {/* Form (Method - API_URL - Send) */}
+      <div className="flex flex-row justify-between gap-2">
+        {/* Select Method && URL text input */}
+        <form className="join mb-[30px] w-100 flex-1" ref={formRef}>
+          <select
+            className="select select-bordered join-item"
+            defaultValue={'GET'}
+            id="method"
+          >
+            <option value="GET">GET</option>
+            <option value="POST">POST</option>
+            <option value="PUT">PUT</option>
+            <option value="PATCH">PATCH</option>
+            <option value="DELETE">DELETE</option>
+          </select>
+          <div className="flex-1">
+            <div>
+              <input
+                className="input input-bordered join-item w-full"
+                placeholder="https://jsonplaceholder.typicode.com/todos"
+                id="url"
+              />
+            </div>
+          </div>
+        </form>
+        {/* Send Button */}
+        <div className="indicator">
+          <button className="btn join-item" onClick={submitForm}>
+            SEND
+          </button>
+        </div>
+      </div>
+
+      {/* Request Tabs */}
+      <div className="tabs">
+        {Tabs.map((tabName) => (
+          <button
+            key={tabName}
+            className={`tab tab-bordered ${
+              tabName === activeTab ? 'tab-active' : ''
+            }`}
+            onClick={() => setActiveTab(tabName)}
+          >
+            {tabName}
+          </button>
+        ))}
+      </div>
+
+      {/* Request Tabs Content */}
+      <div className="tab-content text-left p-3 py-5">
+        {activeTab === 'Params' && <ParamsComponent />}
+        {activeTab === 'Auth' && <AuthComponent />}
+        {activeTab === 'Headers' && <HeadersComponent />}
+        {activeTab === 'Body' && <BodyComponent />}
+        {activeTab === 'Pre-req.' && <PreReqComponent />}
+        {activeTab === 'Tests' && <TestsComponent />}
+        {activeTab === 'Settings' && <SettingsComponent />}
+      </div>
+
+      {/* Response Section */}
+      {axiosResponse?.responseStatus && (
+        <ResponseSection axiosResponse={axiosResponse} />
+      )}
+    </div>
+  )
+}
+
+export default App
 
 function ParamsComponent() {
   return (
@@ -88,107 +207,3 @@ function TestsComponent() {
 function SettingsComponent() {
   return <div>Settings</div>
 }
-
-function App() {
-  const [activeTab, setActiveTab] = useState('Params')
-  const [activeResTab, setActiveResTab] = useState('Response')
-
-  useEffect(() => {
-    themeChange(false)
-    // 👆 false parameter is required for react project
-  }, [])
-
-  return (
-    <div className="flex flex-col">
-      <div className="flex flex-row justify-end mb-5">
-        <div className="form-control">
-          <label className="label cursor-pointer">
-            <span className="mr-1">🌞</span>
-            <input
-              name="theme"
-              data-toggle-theme="light,dark"
-              type="checkbox"
-              className="toggle"
-              data-act-class="ACTIVECLASS"
-            />
-            <span className="ml-1">🌚</span>
-          </label>
-        </div>
-      </div>
-
-      {/* Form */}
-      <div className="flex flex-row justify-between gap-2">
-        <div className="join mb-[30px] w-100 flex-1">
-          <select
-            className="select select-bordered join-item"
-            defaultValue={'GET'}
-          >
-            <option>GET</option>
-            <option>POST</option>
-            <option>PUT</option>
-            <option>PATCH</option>
-            <option>DELETE</option>
-          </select>
-          <div className="flex-1">
-            <div>
-              <input
-                className="input input-bordered join-item w-full"
-                placeholder="https://api.example.com"
-              />
-            </div>
-          </div>
-        </div>
-        <div className="indicator">
-          <button className="btn join-item">SEND</button>
-        </div>
-      </div>
-      {/* Request Tabs */}
-      <div className="tabs">
-        {Tabs.map((tabName) => (
-          <button
-            key={tabName}
-            className={`tab tab-bordered ${
-              tabName === activeTab ? 'tab-active' : ''
-            }`}
-            onClick={() => setActiveTab(tabName)}
-          >
-            {tabName}
-          </button>
-        ))}
-      </div>
-
-      {/* Tabs Content */}
-      <div className="tab-content text-left p-3 py-5">
-        {activeTab === 'Params' && <ParamsComponent />}
-        {activeTab === 'Auth' && <AuthComponent />}
-        {activeTab === 'Headers' && <HeadersComponent />}
-        {activeTab === 'Body' && <BodyComponent />}
-        {activeTab === 'Pre-req.' && <PreReqComponent />}
-        {activeTab === 'Tests' && <TestsComponent />}
-        {activeTab === 'Settings' && <SettingsComponent />}
-      </div>
-
-      {/* Response Tabs */}
-      <div className="tabs">
-        {['Response'].map((tabName) => (
-          <button
-            key={tabName}
-            className={`tab tab-bordered ${
-              tabName === activeResTab ? 'tab-active' : ''
-            }`}
-            onClick={() => setActiveResTab(tabName)}
-          >
-            {tabName}
-          </button>
-        ))}
-      </div>
-
-      {/* Response Content */}
-      <div className="tab-content text-left p-0 py-5 w-100 overflow-hidden">
-        <CodeEditor value={''} height={'200px'} width={'100%'} theme={'dark'} />
-      </div>
-    </div>
-  )
-}
-
-export default App
