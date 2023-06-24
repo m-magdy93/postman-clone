@@ -2,7 +2,7 @@
 - [x] Send and receive Get requests using axios
 - [x] Add Response headers details
 - [x] Create Getting started Markdown file
-- [ ] complete Params section
+- [x] complete Params section and sync it with the URL input
 - [ ] Add auth section
 - [ ] Add Body section
 - [ ] Add Settings section
